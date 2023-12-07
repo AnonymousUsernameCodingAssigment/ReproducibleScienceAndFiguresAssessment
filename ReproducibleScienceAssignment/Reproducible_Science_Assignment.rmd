@@ -1,0 +1,503 @@
+---
+title: 'Reproducible Science and Figures in R Assessment '
+author: "Candidate 1064939"
+date: "01-12-2023"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+## Introduction
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The following is a .rmd RMarkdown file. In it I will answer the questions set out for the Reproducible Science and Figures in R Assessment.
+
+This will use the Palmer Penguin Data Set and explore it using data visualization techniques.
+
+I will first create a figure that badly communicates the data, and explain why it does so. Next, I will create a data analysis pipeline to look for relationships between culmen length and culmen depth. Finally, I will upload the RMarkdown file onto GitHub and have another person download it to asses the reproducability of what I have written.
+
+The Palmer Penguin dataset contains the following columns of relevance to the analysis:
+
+-   Species: Species of Penguin (Adelie, Gentoo or Chinstrap)
+
+-   Island: Location the penguin was observed (Biscoe, Dream or Torgersen)
+
+-   Culmen Lenth (mm): The length of the penguin's bill in millimeters
+
+-   Culmen Depth (mm): The depth of the penguins bill in millimeters
+
+## Installing and loading required packages
+
+Install packages needed for analysis if they are not already installed on the computer
+
+```{r dowload packages code, echo=TRUE, message=FALSE, warning=FALSE}
+#install ggplot for graphing 
+if(!require("ggplot2", character.only = TRUE)) {
+  install.packages("ggplot2")
+}
+
+#install the palmer penguins dataset 
+if(!require("palmerpenguins", character.only = TRUE)) {
+  install.packages("palmerpenguins")
+}
+
+#install janitor for data cleaning 
+if(!require("janitor", character.only = TRUE)) {
+  install.packages("janitor")
+}
+
+#install dplyr for piping 
+ if(!require("dplyr", character.only = TRUE)) {
+  install.packages("dplyr")
+ }
+
+#install tinytex to allow to knit to pdf 
+ if(!require("tinytex", character.only = TRUE)) {
+  install.packages("tinytex")
+ }
+```
+
+Load the packages into the library
+
+```{r loading packeges, echo=TRUE, message=FALSE, warning=FALSE}
+#load packages
+library(ggplot2)
+library(palmerpenguins)
+library(janitor)
+library(dplyr)
+library(tinytex)
+```
+
+I have now downloaded the packages and loaded them into the environment
+
+## QUESTION 01: Data Visualisation for Science Communication
+
+### a) Provide your figure here:
+
+```{r bad figure code, echo=FALSE, fig.height=5, fig.width=12, message=FALSE, warning=FALSE}
+
+# There is no need to provide the code for your bad figure, just use echo=FALSE so the code is hidden. Make sure your figure is visible after you knit it. 
+
+#Clean the data
+#Load the cleaning functions 
+source("functions/Cleaning_Functions.R")
+penguins_clean <- penguins_raw %>%
+    clean_column_names() %>%
+    shorten_species() %>%
+    remove_empty_columns_rows()
+
+
+#name the plot to be made flipper_charactersitics_scatterplot
+flipper_characateristics_scatterplot <- 
+  ggplot(data = penguins_clean,
+       aes(x = culmen_length_mm,
+           y = culmen_depth_mm
+           )) +  #this sets out what elements should be included in the plot and the data that is to be considered 
+#The dataset to be used is penguins from PalmerPenguins 
+#I am using Bill Length (mm), bill_length_mm, as my x variable and Bill Depth (mm), bill_depth_mm, as my y variable 
+geom_point(aes(colour=island, shape=species), size=2.3) + 
+#This line of code adds points for the bill length and depth variables
+#colour=island tells the code to put penguins from differnt isalnds in differnt colours 
+#shape=species tells the code to put differnt species of penguins as differnt shapes 
+#having these unnecacary or unrelavent details on the graph makes it harder to understand 
+#size determines the size of the points - this has been made larger than standard so the points overlap and the graph is harder to read 
+labs(title="Bill Charactersitcs", x="length", y="depth", colour="", shape="") +
+#This changes the labels on the graph of the title, axis and legend to make them more vague and without units 
+scale_color_manual(values = c("Biscoe" = "tomato1", "Dream" = "orange3", "Torgersen"="chocolate4")) + 
+#This changes the colours of each island location form the default. Here I have chosen colours that have little contrast so are hard to distinguish from each other
+scale_shape_manual(values = c("Adelie"=5, "Chinstrap"=2, "Gentoo"=6), 
+    labels = c("Adelie", "Chinstrap", "Gentoo")) + 
+#This changes the shapes, I have chosen shapes that are simalar to each other so they are hard to distinguish 
+theme(panel.grid.major = element_line(colour = "chartreuse3", linetype = "dotted"),
+        panel.grid.minor=element_line(colour = "chartreuse3", linetype = "dashed"),
+        axis.title.x = element_text(face = "italic", size=10), 
+        axis.title.y = element_text(face = "italic", size=10)) + 
+#Theme determines other aesthetics of the graph 
+#The first two lines of code change the default settings for the gridlines, making them dotted on the major lines and dashed on the minor lines. THe colour has also been changed to chartreuse3 which is a green and therefore not colour blind freindly against the red of the data points
+#The last two lines of code, change the aesthetics of the axis titles, making them smaller and italic so that they are harder to read.
+scale_y_continuous(breaks = seq(10, 35, by = 2), , limits = c(13,25)) + 
+scale_x_continuous(breaks = seq(0, 100, by = 3), , limits = c(1,60)) +  
+#These lines of code set the distance between gridlines, making them denser which clutters the graph. It also sets the upper and lower limits of the graph 
+geom_smooth(method = "lm", se = FALSE, col = "green", fullrange=TRUE)
+#This adds a regression line to the graph which does not make sense since the data does not fit a linear model 
+#The line is in green since this is not a colourblind freindly colour 
+#The line has been extrapolated beyond the region of the data which is misleading 
+
+flipper_characateristics_scatterplot
+```
+
+### b) Write about how your design choices mislead the reader about the underlying data (200-300 words).
+
+Although I have used the right type of plot for the data, there are several issues that make the contents misleading or hard to interpret.
+
+Firstly, I have included irrelevant data which creates visual clutter (Franzblau et al., 2012); the island of observation, represented by colour, does not provide additional information and is commonly confounded with species. Additionally, I have used the data from all three species of penguins, indicating that we expect the relationship to be consistent across all three. In truth, penguin bill length and depth appear to be clustered within species, perhaps with a slight positive correlation; this relationship is masked by the presence of all data points.
+
+The data is also displayed in a misleading manner. There are no labels on the legend and the axis labels are vague with no units. Colours and shapes throughout the graph have low contrast, are not colour blind friendly and points are oversized meaning that individual data points are hard to discern and trends within species or islands hard to distinguish. Scaling of the axis so that the y axis is cropped at 12mm and the x axis is cropped at 0 also makes the trend appear more significant than it is, as well as leaving lots of empty space on the graph.
+
+Finally, the addition of a regression line is misleading since it indicates that the data fits a linear model. Not only is this not true, but it also implies that there should be an overall relationship regardless of species and island of observation. The regression line is also extrapolated beyond the domain of the data which falsely suggests that conclusions about expected values outside of the range can be drawn (Durbin et al, 2004).
+
+**References**
+
+Franzblau, L.E. et al. (2012) 'Graphs, tables, and figures in scientific publications: The good, the bad, and how not to be the latter', *The Journal of Hand Surgery*, 37(3), pp. 591--596.
+
+Durbin C. G. (2004) 'Effective use of tables and figures in abstracts, presentations, and papers.' *Respiratory Care.* 49, pp. 1233--1237.
+
+------------------------------------------------------------------------
+
+## QUESTION 2: Data Pipeline
+
+### 1. Introduction
+
+In this analysis, I am going to look at whether there is a correlation between bill (Culmen) length and bill (Culmen) depth in Chinstrap penguins. For this, I will use the data openly available in the Palmer Penguins data set.
+
+#### 1.1 Load the data
+
+The code below installs the palmer penguins data, and other packages required for the analysis if they have not already been downloaded.
+
+-   palmerpenguins : dataset
+
+-   ggplot2 : graphing functions
+
+-   janitor : cleaning functions
+
+-   dplyr : piping functions
+
+-   ragg : saving figures
+
+-   ggpubr : for ggplot customisation
+
+```{r Installing the packages for data exploration, echo=TRUE, message=FALSE, warning=FALSE}
+
+#install the palmer penguins dataset if it has not already been installed 
+if(!require("palmerpenguins", character.only = TRUE)) {
+  install.packages("palmerpenguins")
+}
+
+#install ggplot for graphing if it has not already been installed 
+if(!require("ggplot2", character.only = TRUE)) {
+  install.packages("ggplot2")
+}
+
+#install janitor for data cleaning if it has not already been installed 
+if(!require("janitor", character.only = TRUE)) {
+  install.packages("janitor")
+}
+
+#install dplyr for piping if it has not already been installed 
+ if(!require("dplyr", character.only = TRUE)) {
+  install.packages("dplyr")
+ }
+
+#install ragg for piping if it has not already been installed 
+if(!require("ragg", character.only = TRUE)) {
+  install.packages("ragg")
+}
+
+#install ggpubr for piping if it has not already been installed 
+if(!require("ggpubr", character.only = TRUE)) {
+  install.packages("ggpubr")
+}
+
+```
+
+-   The code below loads the packages that were installed in the previous chunk of code
+
+```{r Loading the packages for data exploration, echo=TRUE, message=FALSE, warning=FALSE}
+#load the packages 
+library(ggplot2)
+library(palmerpenguins)
+library(janitor)
+library(dplyr)
+library(ragg)
+library(ggpubr) 
+```
+
+I have now installed the packages and loaded them into the environment
+
+#### 1.2 Clean the data
+
+Within the Palmer Penguins packages is the data penguins_raw, this section cleans the data by removing lower case and snake letters, shortening species names and removing empty rows and columns
+
+-   The code below looks at the first 6 rows of data and then lists the columns within the dataset
+
+```{r Looking at the data}
+#use the function head() to look at the first six rows of raw data 
+head(penguins_raw)
+
+#use the function names() to look at the column titles 
+names(penguins_raw)
+```
+
+-   The code below saves a copy of the raw data so that it is not overwritten
+
+```{r Saving a copy of the raw penguins data}
+#save a copy of the raw data into the directory that is being worked in 
+write.csv(penguins_raw, "data/penguins_raw.csv")
+```
+
+-   The code below loads cleaning functions written in the file Cleaning_Functions.R found in the functions file within this ReproducibleScienceAssignment repo
+
+```{r Loading the Cleaning Functions}
+#Load the cleaning functions 
+source("functions/Cleaning_Functions.R")
+```
+
+-   The code below cleans the data using the cleaning functions from the Cleaning_Functions.R script in the functions folder
+
+    -   clean_column_names() cleans the column names by removing lower case and snake case letters
+
+    -   shorten_species() makes sure the species names are shortened
+
+    -   remove_empty_columns_rows() removes any empty columns or rows
+
+```{r Cleaning the data}
+#clean the data 
+penguins_clean <- penguins_raw %>%
+    clean_column_names() %>%
+    shorten_species() %>%
+    remove_empty_columns_rows() 
+
+#check that this has worked 
+head(penguins_clean)
+```
+
+-   The code below saves a copy of the clean data
+
+```{r Saving a copy of the clean penguins data}
+#save a copy of the raw data into the directory that is being worked in 
+write.csv(penguins_clean, "data/penguins_clean.csv")
+```
+
+-   The code below subsets the data so we are left with only Chinstrap penguin data for culmen (bill) length and culmen (bill) depth
+
+-   It also removes any N/A values
+
+```{r Subseting the data}
+#subset the data 
+chinstrap_culmen_morphology_only <- penguins_clean %>%
+    filter_by_species("Chinstrap") %>%
+    subset_columns(c("culmen_length_mm", "culmen_depth_mm")) %>%
+    remove_NA() 
+
+#check that this has worked 
+head(chinstrap_culmen_morphology_only)
+
+#save a copy of this new dataframe 
+write.csv(chinstrap_culmen_morphology_only, "data/chinstrap_culmen_morphology_only.csv")
+```
+
+### 2. Hypothesis
+
+Question: Are culmen characteristics correlated in Chinstrap Penguins?
+
+H0: There is no correlation between culmen depth and culmen length in Chinstrap penguins
+
+-   H0: population correlation coefficient = 0
+
+HA: There is a correlation between culmen depth and culmen length in Chinstrap penguins
+
+-   HA: population correlation coefficient does not = 0
+
+#### 2.1 Exploratory figure
+
+The following section creates and saves an exploratory figure that plots Culmen Depth against Culmen Length
+
+-   The code below loads the plotting functions from the Plotting_Functions.R script into this markdown document
+
+```{r Loading the Plotting Functions}
+#Load the plotting functions 
+source("functions/Plotting_Functions.R")
+```
+
+-   The following code plots an exploratory figure of Culmen Depth against Culmen Length using plotting functions from the Plotting_Function.R script in the functions folder
+
+```{r Plotting the exploratory graph}
+#create a plot called chinstrap_culmen_morphology_exploratory
+chinstrap_culmen_morphology_exploratory <- 
+  plot_culmen_exploratory_figure(chinstrap_culmen_morphology_only)
+
+#check the figure 
+chinstrap_culmen_morphology_exploratory
+```
+
+-   The code below saves the figure as "chinstrap_culmen_morphology_exploratory_figure" in a folder called figures within the repository
+
+```{r Save the exploratory figure, echo=TRUE, message=FALSE, warning=FALSE}
+#use the agg_png function to save the chinstrap_culmen_morphology_exploratory figure as a png 
+agg_png("figures/chinstrap_culmen_morphology_exploratory_figure.png", 
+        width = 23,
+        height = 15, 
+        units = "cm", 
+        res = 300, 
+        scaling = 1)
+chinstrap_culmen_morphology_exploratory
+dev.off()
+```
+
+### 3. Statistical Methods
+
+#### 3.1 Testing the assumptions for a Pearson's correlation coefficient
+
+1.  Linearity
+
+    -   From the exploratory plot seen in the previous test, we can see that there is a linear relationship between Culmen Length and Culmen Depth in Chinstrap penguins so this assumption is met.
+
+2.  Normal distribution
+
+    -   We can use a Shapiro Wilk normality test to check if the data follows a normal distribution
+
+    -   The code below performs these tests
+
+    -   Since both p values are greater than 0.05, we can assume that the data do not differ significantly from the normal distribution
+
+```{r Test for normality}
+#Shapiro-Wilk normality test for culmen_length_mm
+shapiro.test(chinstrap_culmen_morphology_only$culmen_length_mm) # => p = 0.1941
+#Shapiro-Wilk normality test for culmen_depth_mm
+shapiro.test(chinstrap_culmen_morphology_only$culmen_depth_mm) # => p = 0.1418
+```
+
+#### 3.2 Testing significance of the hypotheses using a correlation coefficient and t test
+
+The following section will calculate a correlation coefficient to assess strength and direction of the association between Culmen Length and Culmen Depth in Chinstrap penguins.
+
+-   The following code calculates the correlation coefficient using the cor.test() function
+
+```{r Calculating the correlation coeffiecnt}
+#Calculate the correlation coefficent using cor.test()
+chinstrap_culmen_morphopology_correlation <- cor.test(chinstrap_culmen_morphology_only$culmen_length_mm,                                                    chinstrap_culmen_morphology_only$culmen_depth_mm)
+
+#print the results 
+chinstrap_culmen_morphopology_correlation
+```
+
+The output of this code gives us several values
+
+-   t = 7.0146
+
+    -   The t test statistic used for testing that the correlation is significantly different from 0
+
+-   df = 66
+
+    -   This is the number of degrees of freedom used in the test
+
+-   p-value = 1.526e-09
+
+    -   This is the exact p value that has been calculated for the t value and the degrees of freedom
+
+    -   This means that there is a 0.0000001536% chance that the same results could have occurred under the null hypothesis
+
+    -   Since p\<0.05 we should reject the null hypothesis
+
+-   95 percent confidence interval = 0.4917326 0.7717134
+
+    -   This is the 95% confidence interval for our correlation coefficient
+
+    -   Since the confidence interval does not overlap with 0 we can reject the null hypothesis
+
+-   sample estimates = r = 0.6535362
+
+    -   This is the correlation coefficient value which tells us the strength and direction of the linear relationship between the variables
+
+### 4. Results & Discussion
+
+This section will present the results in a figure and discuss the findings
+
+#### 4.1 Creating the results figure
+
+The code below creates the results figure
+
+```{r Plotting Results, echo=TRUE, message=FALSE, warning=FALSE}
+#name the plot to be made chinstrap_culmen_morphology_results
+chinstrap_culmen_morphology_results <- 
+  plot_culmen_results_figure(chinstrap_culmen_morphology_only)
+
+#check the figure 
+chinstrap_culmen_morphology_results
+```
+
+The code below saves the figure as "chinstrap_culmen_morphology_results_figure" in a folder called figures within the directory
+
+```{r Save the results figure, echo=TRUE, message=FALSE, warning=FALSE}
+#use the agg_png function to save the chinstrap_culmen_morphology_exploratory figure as a png 
+agg_png("figures/chinstrap_culmen_morphology_results_figure.png", 
+        width = 23,
+        height = 15, 
+        units = "cm", 
+        res = 300, 
+        scaling = 1)
+chinstrap_culmen_morphology_results
+dev.off()
+```
+
+#### 4.2 Discussion
+
+My results show that there is a significant positive correlation between Culmen Length and Culmen Depth in Chinstrap Penguins.
+
+In this analysis I calculated the Pearson's correlation coefficient to assess the relationship between Culmen Length and Culmen Depth in Chinstrap penguins. The correlation coefficient was r=0.6535362 which indicates a moderate positive correlation. I then conducted a t test to asses the significance of the correlation which yielded a p value of p=1.526e-09. With a significance level of 0.05, we reject the null hypothesis indicating that the observed correlation is statistically significant.
+
+This is likely to be because the traits are linked either directly through genetics or indirectly as both could be related to age. One limitation of the study is that age has not been recorded, meaning it would be difficult to distinguish the cause of this relationship.
+
+### 5. Conclusion
+
+This analysis has shown that there is a significant positive correlation between Culmen Length and Culmen Depth in the Chinstrap penguins recorded in the PalmerPenguins dataset.
+
+Further analysis could look at whether this relationship is the same in different species and whether there is a difference in the strength of the relationship for males and females.
+
+------------------------------------------------------------------------
+
+## QUESTION 3: Open Science
+
+### a) GitHub
+
+*Upload your RProject you created for **Question 2** and any files and subfolders used to GitHub. Do not include any identifiers such as your name. Make sure your GitHub repo is public.*
+
+*GitHub link:*
+
+[*https://github.com/AnonymousUsernameCodingAssigment/ReproducibleScienceAndFiguresAssessment/tree/main*](https://github.com/AnonymousUsernameCodingAssigment/ReproducibleScienceAndFiguresAssessment/tree/main)
+
+### b) Share your repo with a partner, download, and try to run their data pipeline.
+
+<https://github.com/1065058assignment/ReproducibleScienceAssignment.git>
+
+*You **must** provide this so I can verify there is no plagiarism between you and your partner.*
+
+### c) Reflect on your experience running their code. (300-500 words)
+
+-   *What elements of your partner's code helped you to understand their data pipeline?*
+
+    The introduction section in my partners code was very thorough. Here, they set out what data was going to be analysed and the methods with which they would do this. This structure is then followed chronologically using clear headings and subheadings throughout. Each statistical test was preceded with a clear explanation of why it was chosen and raw and clean data sets were saved in a separate folder to ensure findings were reproducible.
+
+-   *Did it run? Did you need to fix anything?*
+
+    The code ran and knitted to pdf without needing to fix anything.
+
+-   *What suggestions would you make for improving their code to make it more understandable or reproducible, and why?*
+
+    Although, the comments throughout the R script were thorough, additional comments within the code chunks would make the code more understandable when chunks are looked at separately. Comments that were within the code chunks were confusingly placed, with the description sometimes preceding the code and sometimes following it. Consistency here would mean the reader knows where to look each time to understand the code. Additionally, when the markdown file is knit, comments which follow a line of code were often split from the code by the output (such as in the case with p values for shapiro wilks) which can cause confusion.
+
+    To increase the clarity of the statistical tests, they could add more detail about the purpose of the levees test and include mathematical as well as verbal hypotheses into the pipeline.
+
+    Finally, in order to improve the reproducibility and replicability of graphs, code for the confidence interval should be embedded within the plotting function. Currently, these numbers have been added manually meaning that if data was changed, or the code altered slightly, the graphs may become incorrect.
+
+-   *If you needed to alter your partner's figure using their code, do you think that would be easy or difficult, and why?*
+
+    The use of separate plotting functions means that it is easy to find the code which would need to be altered to change the figures. The use of the agg_png saving function means that it would also be simple to save different versions of the graphs for different purposes. However, as mentioned above, it would be complicated to alter the results figure since confidence intervals have been manually inputted, using bootstrapping outputs from the main markdown file. Therefore, if new confidence intervals were generated these would be have to changed manually. Having said this, the comments on the plotting code are clear so this would be a simple process, despite not being replicable or reproducible.  
+
+### d) Reflect on your own code based on your experience with your partner's code and their review of yours. (300-500 words)
+
+-   *What improvements did they suggest, and do you agree?*
+
+    Although, my comments within code chunks are thorough, my partner suggested that each comment should be moved to after the line of code it describes rather than before. In theory, this would mean that the reader can use the comment, code, and description in conjunction to understand the action that has been performed. However, putting the comment after the code can also be confusing since readers have no context before running the code.
+
+    They also suggested that it might be beneficial to include the functions code within the main rmd file. This has merit to increase the clarity of connection between code and figure/function or to allow functions to be altered more easily. However, ultimately, I think that the use of separate r scripts containing functions keeps the code less cluttered and allows the use of the same functions to be used more easily in different analyses (increasing the ease of replication).
+
+    A helpful suggestion was to condense the text outside of code chunks, particularly when describing the outputs of statistical tests. This would improve the readability of my pipeline and help to emphasise my findings. I can assume that the reader has some statistical knowledge so less depth about the purpose of each test is needed and outputs can be described in brief (since more detail can be found in the codes output).
+
+-   *What did you learn about writing code for other people?*
+
+    The process of writing a data pipeline, specifically focusing on reproducibility and replicability has given me a new outlook on the important elements of a R Markdown file. An introduction which sets out what will be looked at is particularly important to give clarity at each stage of the analysis. The focus on reproducibility made me consider the importance of focusing on each step as a whole, with explanations and outputs, rather than the pipeline being a process to get to an overall output. This means that when individual sections are looked at, they are logical, and each section can stand alone and be reproduced. Finally, I learnt that concisely written work is more understandable to others. This can be done in a number of ways including using pipes so that multiple functions can be run at once, putting functions in a separate R script or even by improving the conciseness with which descriptions are written in.
